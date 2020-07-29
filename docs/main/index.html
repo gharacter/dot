@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-Control" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta http-equiv="content-language" content="ja">
+
+<meta property="og:url" content="https://gharacter.github.io/dot/main/" />
+<meta property="og:image" content="https://gharacter.github.io/dot/main/res/title.jpg" />
+<meta property="og:title" content="ドッたの？【作りかけ】" />
+<meta property="og:description" content="日頃溜まったドットを吐き出そう" />
+<meta property="og:type" content="article">
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@gharacter" />
+
+<meta property="og:site_name" content="サイト名" />
+<meta property="og:locale" content="ja_JP" />
+<meta property="fb:app_id" content="appIDを入力">
+<script>
+var DEBUG   = false;
+var W       = 1920;
+var H       = 1080;
+var UA      = window.navigator.userAgent.toLowerCase();
+var isIE    = UA.match(/msie/) || UA.match(/trident/);
+var isLocal = location.href.substring(0,5)==='file:';
+var isTouch = ('ontouchstart' in window || navigator.msPointerEnabled);
+var src     = function(s){ return "./res/" + s }
+
+var Pallet = (function(){
+	var pallet = [];
+	var palletNum = -1;
+	var max = 64;
+	var col = 8;
+	var favo = [];
+	var isOpen = false;
+	var alphaColor = "012345";
+	var S = [
+		"0","1","2","3","4","5","6","7","8","9",
+		"a","b","c","d","e","f","g","h","i","j",
+		"k","l","m","n","o","p","q","r","s","t",
+		"u","v","w","x","y","z","A","B","C","D",
+		"E","F","G","H","I","J","K","L","M","N",
+		"O","P","Q","R","S","T","U","V","W","X",
+		"Y","Z","-","_"
+	];
+	return{
+		init: function(n){
+			this.set(n);
+			for(var i=0; i<max/col; i++){
+				for(var j=0; j<col; j++){
+					var cNum = i * col + j;
+					var b = document.createElement("b");
+					b.id = "c_"+ cNum;
+					if(cNum >= max-1){
+						b.style.backgroundImage = 'url("'+ src("a.png") +'")';
+					}else{
+						b.style.backgroundColor = "#"+ pallet[cNum];
+					}
+					_$("pnlPall").appendChild(b);
+				}
+				_$("pnlPall").appendChild(document.createElement("br"));
+			}
+			_$("btnPallBack").style.backgroundImage = 'url("'+ src("a.png") +'")';
+			_$("btnPall").addEventListener("click", function(e){
+				Pallet.open(!isOpen);
+			} ,false);
+			_$("pnlPall").addEventListener("click", function(e){
+				var xy = (e && e.touches) ? e.touches[0] : e;
+				var node = document.elementFromPoint(xy.pageX, xy.pageY);
+				if(node.nodeName.toUpperCase() === "B"){
+					var pos = Number( node.id.split("_")[1] );
+					Dot.setCol(pos);
+					Pallet.open(false);
+				}
+			} ,false);
+		},
+		set: function(n){
+			var arr = [
+			["330000","660000","BB0000","FF0000","FF2233","FF5577","FF99BB","FFBBEE"
+			,"442200","664400","BB7700","FF9911","FFAA44","FFCC66","FFDDAA","FFEEBB"
+			,"333300","666600","BBBB00","FFFF00","FFFF33","FFFF66","FFFF99","FFFFCC"
+			,"003300","005500","007700","00AA00","11CC11","55DD55","88EE88","BBFFBB"
+			,"002244","004499","0077CC","1199DD","22BBEE","55CCFF","99EEFF","CCFFFF"
+			,"000055","000088","0000CC","0000FF","3333FF","6666FF","9999FF","CCCCFF"
+			,"220033","330055","550099","9900CC","CC00FF","DD55FF","EE88FF","FFCCFF"
+			,"000000","222222","555555","888888","BBBBBB","DDDDDD","FFFFFF", ""
+			]];
+			palletNum = (n && n<=arr.length-1) ? n : 0;
+			pallet = arr[palletNum];
+		},
+		get: function(n){
+			return pallet[(n && n<=pallet.length-1) ? n : 0];
+		},
+		find: function(str){
+			var cHex;
+			if(str.substring(0,3).toLowerCase()==="rgb"){
+				var rgb = str.replace(/rgba?\(/,"").replace(")","").split(",");
+				var r = ("0"+ Number(rgb[0]).toString(16)).slice(-2);
+				var g = ("0"+ Number(rgb[1]).toString(16)).slice(-2);
+				var b = ("0"+ Number(rgb[2]).toString(16)).slice(-2);
+				cHex = (""+ r + g + b).toUpperCase();
+			}else if(str.substring(0,1)==="#"){
+				cHex = str.replace("#","").toUpperCase();
+			}else{
+				cHex = "";
+			}
+			return pallet.indexOf(cHex);
+		},
+		open: function(bool){
+			isOpen = bool;
+			if(isOpen){
+				_$("pnlPall").style.display = "inline-block";
+				_$("btm").style.height = _$("pnlFavo").offsetHeight + _$("pnlPall").offsetHeight +"px";
+				_$("btnPall").innerText = "Close";
+			}else{
+				_$("pnlPall").style.display = "none";
+				_$("btm").style.height = _$("pnlFavo").offsetHeight +"px";
+				_$("btnPall").innerText = "Color";
+			}
+		},
+		favoAdd: function(cNum){
+			//favo.unshift( (cNum && cNum<=pallet.length-1) ? cNum : 0 );
+			var id = "favo_"+ cNum;
+			if(_$(id)) _$(id).parentNode.removeChild(_$(id));
+			var b = document.createElement("b");
+			b.id = id;
+			if(cNum >= max-1){
+				b.style.backgroundImage = 'url("'+ src("a.png") +'")';
+			}else{
+				b.style.backgroundColor = "#"+ pallet[cNum];
+			}
+			addClass(b, "favo");
+			b.addEventListener("click", function(e){
+				Dot.setCol(Number( e.target.id.split("_")[1] ));
+			} ,false);
+			_$("pnlFavo").prependChild(b);
+		},
+		encode: function(data){
+			var d = "";
+			for(var i=0; i<data.length; i++){
+				for(var j=0; j<data[i].length; j++){
+					d += ( ""+ S[data[i][j]] );
+				}
+			}
+			return ""+ S[palletNum]+ S[Dot.w()] + S[Dot.h()] + d;
+		},
+		decode: function(encDat){
+			this.set( S.indexOf(encDat.substring(0,1)) );
+			var col = S.indexOf(encDat.substring(1,2));
+			var row = S.indexOf(encDat.substring(2,3));
+			var d = encDat.substring(3);
+			var data = [];
+			for(var i=0; i<row; i++){
+				data[i] = [];
+				for(var j=0; j<col; j++){
+					var pos = i * row + j;
+					data[i][j] = S.indexOf(d.substring(pos, pos + 1));
+				}
+			}
+			return data;
+		}
+	}
+})();
+
+var Tool = (function(){
+	var list = ["add", "del", "get", "grid", "img", "save", "load"];
+	var tool = list[0];
+	return{
+		init: function(){
+		}
+	}
+})();
+
+var Dot = (function(){
+	var data = [];
+	var undoMax = 10;
+	var undoPos = 0;
+	var w = 32;
+	var h = 32;
+	var x = 0;
+	var y = 0;
+	var c = 64-8;
+	var canvasColor = 63;
+	var px = 44;
+	var zoom = 29;
+	var grid = true;
+	var isHand = false;
+	var isGet = false;
+	var isDraw = false;
+	var isView = false;
+	return{
+		init: function(){
+			var dotsParam = getUrlParams()["d"];
+			if(dotsParam && dotsParam.length >= 4){
+				isView = true;
+				isHand = true;
+				addClass(_$("main"), "view");
+				data[0] = Pallet.decode(dotsParam);
+				w = data[0][0].length ;
+				h = data[0].length ;
+			}else if(Mem.get("dotsData")){
+				data[0] = JSON.parse(Mem.get("dotsData"));
+				w = data[0][0].length ;
+				h = data[0].length ;
+			}else{
+				data[0] = [];
+				w = 32;
+				h = 32;
+			}
+			var dots = _$("dots");
+			dots.style.width  = (px * w) +"px";
+			dots.style.height = (px * h) +"px";
+			for(var i=0; i<h; i++){
+				if(!data[0][i]) data[0][i] = [];
+				for(var j=0; j<w; j++){
+					data[0][i][j] = data[0][i][j] || canvasColor;
+					var dot = document.createElement("b");
+					dot.id = "d_"+ i +"_" + j;
+					dot.style.backgroundColor = "#"+ Pallet.get(data[0][i][j]);
+					dots.appendChild(dot);
+				}
+			}
+
+			// draw
+			dots.addEventListener(isTouch?"touchstart":"mousedown", function(e){
+				isDraw = true;
+				if(undoPos > 0){
+					data.splice(0, undoPos);
+					undoPos = 0;
+				}
+				data.unshift( copy(data[0]) );
+				if(data.length > undoMax) data.pop();
+				var event = (e.touches) ? e.touches[0] : e; //jQuery: e.originalEvent.touches
+				var node = document.elementFromPoint(event.pageX, event.pageY);
+				if(node.nodeName.toUpperCase() === "B"){
+					var pos = node.id.split("_");
+					if(isGet){
+						isGet = false;
+						Dot.state();
+						Dot.setCol(Pallet.find(node.style.backgroundColor));
+					}else if(!isHand){
+						Dot.draw([Number(pos[1]), Number(pos[2])], c);
+					}
+				}
+			} ,false);
+			dots.addEventListener(isTouch?"touchmove":"mousemove", function(e){
+				if(!isDraw) return;
+				var event = (e.touches) ? e.touches[0] : e; //jQuery: e.originalEvent.touches
+				var node = document.elementFromPoint(event.pageX, event.pageY);
+				if(node.nodeName.toUpperCase() === "B"){
+					var pos = node.id.split("_");
+					if(!isGet && !isHand){
+						Dot.draw([Number(pos[1]), Number(pos[2])], c);
+					}
+				}
+			} ,false);
+			document.body.addEventListener(isTouch?"touchend":"mouseup", function(e){
+				isDraw = false;
+			} ,false);
+			document.body.addEventListener(isTouch?"touchcancel":"mouseleave", function(e){
+				isDraw = false;
+			} ,false);
+
+
+			// drag
+			var baseDist = null;
+			_$("mdl").addEventListener(isTouch?"touchstart":"mousedown", function down(e){
+				e.preventDefault();
+				var event = (e.type === "mousedown") ? e : e.changedTouches[0];
+				x = event.pageX - (_$("dots").offsetLeft - 8); // - margin
+				y = event.pageY - (_$("dots").offsetTop - px); // - margin
+				baseDist = null;
+				document.body.addEventListener("mousemove", move, false);
+				document.body.addEventListener("touchmove", move, false);
+			}, false);
+			function move(e){
+				//[Intervention] Unable to preventDefault inside passive event listener due to target being treated as passive.
+				//e.preventDefault();
+				var event;
+				var isPinch = false;
+				if(e.type === "mousemove"){
+					event = e;
+				}else{
+					event = e.changedTouches[0];
+					if(e.changedTouches.length == 2){
+						isPinch = true;
+						var x1 = e.changedTouches[0].pageX;
+						var y1 = e.changedTouches[0].pageY;
+						var x2 = e.changedTouches[1].pageX;
+						var y2 = e.changedTouches[1].pageY;
+						var d = Math.sqrt(Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2));
+						if(!baseDist){
+							baseDist = d;
+						}else{
+							Dot.setZoom( d / baseDist >= 1 ? zoom+1 : zoom-1);
+						}
+					}
+				}
+				if(!isHand || isPinch) return;
+				_$("dots").style.top  = event.pageY - y + "px";
+				_$("dots").style.left = event.pageX - x + "px";
+			}
+		        document.body.addEventListener(isTouch?"touchend":"mouseup", function(e){
+				document.body.removeEventListener("mousemove", move, false);
+				document.body.removeEventListener("touchmove", move, false);
+			}, false);
+		        document.body.addEventListener(isTouch?"touchleave":"mouseleave", function(e){
+				document.body.removeEventListener("mousemove", move, false);
+				document.body.removeEventListener("touchmove", move, false);
+			}, false);
+
+			// zoom
+			_$("inpZoom").addEventListener(isIE?"change":"input", function(e){
+				Dot.setZoom(e.target.value);
+			} ,false);
+			_$("dspZoom").addEventListener(isIE?"change":"input", function(e){
+				Dot.setZoom(e.target.value);
+			} ,false);
+			_$("main").addEventListener("mousewheel", function(e){
+				zoom += (e.wheelDelta < 1) ? -1 : 1;
+				Dot.setZoom(zoom);
+			} ,false);
+
+
+			_$("btnUndo").addEventListener("click", function(e){
+				if(undoPos == 0 && data[1] && JSON.stringify(data[0]) !== JSON.stringify(data[1])){
+				//	data.unshift( copy(data[0]) );
+				//	if(data.length > undoMax) data.pop();
+				}
+				if(undoPos < undoMax && data[undoPos+1]) undoPos++;
+				for(var i=0; i<h; i++){
+					for(var j=0; j<w; j++){
+						Dot.draw([i, j], data[undoPos][i][j], true);
+					}
+				}
+				Mem.save("dotsData", JSON.stringify(data[undoPos]));
+			} ,false);
+			_$("btnRedo").addEventListener("click", function(e){
+				if(undoPos > 0) undoPos--;
+				for(var i=0; i<h; i++){
+					for(var j=0; j<w; j++){
+						Dot.draw([i, j], data[undoPos][i][j], true);
+					}
+				}
+				Mem.save("dotsData", JSON.stringify(data[undoPos]));
+			} ,false);
+			_$("btnGrid").addEventListener("click", function(e){
+				grid = !grid;
+				var dots = _$("dots");
+				grid ? addClass(dots, "grid") : delClass(dots, "grid");
+			} ,false);
+			_$("btnSuck").addEventListener("click", function(e){
+				isGet = true;
+				isHand = false;
+				Dot.state();
+			} ,false);
+			_$("btnDraw").addEventListener("click", function(e){
+				isGet = false;
+				isHand = false;
+				Dot.state();
+			} ,false);
+			_$("btnHand").addEventListener("click", function(e){
+				isGet = false;
+				isHand = true;
+				Dot.state();
+			} ,false);
+			_$("btnTool").addEventListener("click", function(e){
+				var url = "https://twitter.com/intent/tweet" + getUrlParamsStr({
+					text     : "再生するとドット絵を表示します",
+					url      : "https://gharacter.github.io/dot/?d="+ Pallet.encode(data[0]),
+					hashtags : "ドッたの,ドット絵,pixelart",
+					//via      : "gharacter",
+					//related: "",
+					//in_reply-to: "",
+				});
+				window.open(url,'_blank');
+			} ,false);
+
+			this.setZoom(zoom);
+			this.setCol(c);
+			this.state();
+			_$("dots").style.top  = -500 +"px";
+			_$("dots").style.left = -500 +"px";
+		},
+		setCol: function(cNum){
+			c = cNum || 0;
+			_$("btnPall").style.backgroundColor = (c >= 64-1) ? "rgba(0,0,0,0)" : "#"+ Pallet.get(c);
+		},
+		setZoom: function(n){
+			if(n < 1)   n = 1;
+			if(n > 100) n = 100;
+			zoom = _$("inpZoom").value = _$("dspZoom").value = Number(n);
+			var scale = zoom / 100;
+			dots.style.transform = "scale("+ scale +")";
+			return zoom;
+		},
+		state: function(){
+			isHand ? delClass(_$("btnHand"), "off") : addClass(_$("btnHand"), "off");
+			isGet  ? delClass(_$("btnSuck"), "off") : addClass(_$("btnSuck"), "off");
+			!isHand && !isGet ? delClass(_$("btnDraw"), "off") : addClass(_$("btnDraw"), "off");
+		},
+		draw: function(pos, cNum, notSave){
+			if(!notSave){
+				data[0][Number(pos[0])][Number(pos[1])] = cNum;
+				Mem.save("dotsData", JSON.stringify(data[0]));
+				Pallet.favoAdd(cNum);
+				//log(Pallet.encode(data[0]));
+				//log("autosave");
+			}
+			var color = (cNum >= 64-1) ? "rgba(0,0,0,0)" : "#"+ Pallet.get(cNum);
+			_$("d_"+ pos[0] +"_"+ pos[1]).style.backgroundColor = color;
+		},
+		w: function(){ return w; },
+		h: function(){ return h; },
+	}
+})();
+
+var Mem = (function(){
+	var data;
+	return{
+		init: function(initData){
+			data = initData || {};
+			for(var key in data){ this.load(key); }
+		},
+		save: function(key, val){
+			if(val === null || val === undefined) return;
+			data[key] = val;
+			try{
+				localStorage.setItem(key, val);
+			}catch(e){
+		    		Dialog.alert("データ保存失敗");
+			}
+		},
+		load: function(key, showErr){
+			var val;
+			try{
+				val = localStorage.getItem(key);
+			}catch(e){
+				if(showErr) Dialog.alert("データ読込失敗");
+				return null;
+			}
+			if(val !== null && val !== undefined){
+				if(key && key.substring(0,4) === "bool")　val = val.toLowerCase() === "true" ? true : false;
+				data[key] = val;
+			}
+			return val;
+		},
+		get: function(key){
+		    return data[key];
+		}
+	}
+})();
+
+var Dialog = (function(){
+	var className = "myDialogBox";
+	var elm = null;
+	var btnObj = null;
+	return{
+		init : function(){
+			var tmp = document.getElementsByClassName(className);
+			if(tmp && tmp.length>0) return;
+			var div = document.createElement("div");
+			document.body.appendChild(div);
+			div.className = className;
+			div.style.display = "block";
+			elm = tmp[0];
+		},
+		// 通常
+		set : function(title, msg, buttons) {
+			this.close();
+			btnObj = buttons;
+			var btn = "";
+			var btnSize = (buttons.length>1 ? 100 : 50) / buttons.length;
+			for(var i=0; i<buttons.length; i++){
+				btn += '<button onclick="Dialog.btn('+ i +')" style="padding:5px; width:'+ btnSize +'%; min-height:2.4em; background:none; border:solid 1px #CCC; cursor:pointer;">'+ buttons[i].name +'</button>'
+			}
+			elm.innerHTML = (''
+			+'<div style="position:fixed; top:0%; left:0%; width:100%; height:100%; background:rgba(0,0,0,0.5); ">'
+			+'<div style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:80%; max-width:640px; min-width:300px; padding:20px; background:#FFF; color:#000; box-shadow: 0px 0px 10px 4px rgba(0,0,0,0.2); ">'
+			+ title
+			+'<hr style="border:0 dashed #CCC; border-width:1px 0 0 0;">'
+			+'<div style="padding:12px 0;">'+ msg +'</div>'
+			+'<div style="text-align:right">'+ btn +'</div>'
+			+'</div>'
+			+'</div>'
+			+'');
+		},
+		btn : function(i) {
+			btnObj[i].func();
+		},
+		close : function() {
+			btnObj = null;
+			elm.innerHTML = "";
+		},
+		alert : function(title, msg) {
+			this.set(title, msg, [{name:"OK", func:function(){Dialog.close();}}]);
+		}
+	}
+})();
+
+function init(){
+	Mem.init({dotsData:null});
+	Dialog.init();
+	Pallet.init();
+	Tool.init();
+	Dot.init();
+	var main = _$("main");
+	main.style.display = "block";
+	var dots = _$("dots");
+	dots.style.backgroundImage = 'url("'+ src("a.png") +'")';
+	dots.style.backgroundRepeat = "repeat";
+//	dots.style.width   = W +"px";
+//	dots.style.height  = H +"px";
+}
+function resize(){
+	var w = document.body.offsetWidth ;
+	var h = document.body.offsetHeight ;
+	var scale = w/W;
+	var dots = _$("dots");
+//	dots.getElementById("dots").style.transform = "scale("+ scale +")";
+//	dots.getElementById("dots").style.marginBottom = (H*scale - H) + "px";
+}
+
+window.onload   = function(){ init(); resize(); }
+window.unonload = function(){ }
+window.onresize = function(){ resize(); }
+window.onscroll = function(){ resize(); }
+window.requestAnimationFrame = window.requestAnimationFrame||window.mozRequestAnimationFrame||window.webkitRequestAnimationFrame||window.msRequestAnimationFrame;
+Node.prototype.prependChild = function(e){this.insertBefore(e,this.firstChild)}
+function _$(id){return document.getElementById(id);}
+function _$c(a,b){return (a&&a.tagName?a:document).getElementsByClassName(a&&a.tagName?b:a)}
+function _$t(a,b){return (a&&a.tagName?a:document).getElementsByTagName(a&&a.tagName?b:a)}
+function log(arg0, arg1){ if(arg1 == undefined){ console.log(arg0); }else{ console.log(arg0, arg1); } }
+function rand(n){return Math.floor(Math.random()*n)}
+function copy(o){return JSON.parse(JSON.stringify(o))}
+function fmt(n){var h=Math.floor(n/3600),m=('0'+Math.floor(n/60%60)).slice(-2),s=('0'+Math.floor(n%60)).slice(-2);return (n>3600)?(h+':'+m+':'+s):(m+':'+s);}
+function fmtByte(b,d){if(b==0) return "0 Byte";var k=1024,s=["Bytes","KB","MB","GB","TB","PB"],i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(d))+" "+s[i];}
+function addClass(e, addName){delClass(e,addName);if(e.className==null||e.className==undefined)e.className="";e.className+=" "+addName;return e;}
+function delClass(e, delName){if(e.className==null||e.className==undefined)return e;var a=e.className.split(" ");for(var i=0;i<a.length;i++){if(a[i]==delName)a.splice(i--,1);}e.className = a.join(" ");return e;}
+function getUrlParams(){var p={}, pair=location.search.substring(1).split('&'); for(var i=0; pair[i]; i++){var kv=pair[i].split('='); p[decodeURIComponent(kv[0])]=decodeURIComponent(kv[1]||"");} return p;}
+function getUrlParamsStr(obj){var r=''; for(var p in obj){r+=(r.length==0?'?':'&')+encodeURIComponent(p)+'='+encodeURIComponent(obj[p]);} return r;}
+</script>
+
+<style>
+*,
+*::before,
+*::after   { margin:0; padding:0; box-sizing:border-box; }
+body, html { width:100%; height:100%; background:#333; color:#FFF; overflow-x:hidden; overflow-y:hidden; }
+i     { font-style:normal; }
+b     { font-weight:normal; }
+br    { height:0px; }
+ol, ul{ list-style:none; }
+
+#main { width:100%; height:100%; transform:scale(1.0); transform-origin:0% 0%; -webkit-backface-visibility:hidden; display:none; }
+#top  { width:100%; height:44px; position:fixed; left:0px; top:0px; background:rgba(0,0,0,0.5);line-height:44px; text-align:center; z-index:2; }
+#mdl  { width:100%; height:100%; position:absolute; left:0px; top:0px; }
+#btm  { width:100%; height:44px; position:fixed; left:0px; bottom:0px; background:rgba(0,0,0,0.0); z-index:2; overflow:hidden; pointer-events:none; }
+#btm *{ pointer-events:auto; }
+
+#dots { position:absolute; left:0px; top:0px; margin:44px 8px; display:-webkit-flex; display:flex; -webkit-flex-wrap:wrap; flex-wrap:wrap; transform:scale(1.0); transform-origin:50% 50%; }
+
+.grid b { border:solid 1px #000; }
+
+#dots b,
+#pnlPall b,
+.favo,
+.btn    { width:44px; height:44px; display:inline-block; }
+.left   { float:left; }
+.right  { float:right; }
+.favo   { padding:4px;border:solid 2px #FFF; border-radius:100%; }
+.btn    { background:rgba(255,255,255,1.0); }
+.off    { background:rgba(180,180,180,1.0); }
+
+#inpZoom { vertical-align:middle; }
+#dspZoom { width:60px; padding:4px; display:inline-block; vertical-align:middle; background:rgba(255,255,255,0.8); }
+
+#btnPall { text-shadow:1px 1px 1px #FFF; }
+#pnlFavo { width:calc(100% - 44 * 4px); height:44px; background:rgba(0,0,0,0.5); float:right; }
+#pnlPall { height:calc(44 * 7 + 4px); margin-bottom:-7px; border:double 3px #FC3; border-radius:12px; overflow:hidden; display:none; }
+#pnlPall b { vertical-align:bottom; border:solid 1px #000; }
+
+.view .btn, .view #pnlFavo { display:none; }
+.view #btnGrid { display:inline-block; }
+</style>
+<title></title>
+</head>
+<body>
+<div id="main">
+	<div id="top">	
+		<button id="btnUndo" class="btn left">Undo</button>
+		<button id="btnRedo" class="btn left">Redo</button>
+		<input id="inpZoom" name="inpZoom" type="range" max="100" min="1" step="1">
+		<input id="dspZoom" name="dspZoom" type="number" value="50">
+		<button id="btnTool" class="btn right">Tweet</button>
+		<button id="btnGrid" class="btn right">Grid</button>
+	</div>
+	<div id="mdl">	
+		<div id="dots" class="grid"></div>
+	</div>
+	<div id="btm">
+		<div id="pnlPall"></div>
+		<div>
+			<div id="btnPallBack" class="btn left">
+				<button id="btnPall" class="btn left">Color</button>
+			</div>
+			<button id="btnHand" class="btn right">Hand</button>
+			<button id="btnDraw" class="btn right">Draw</button>
+			<button id="btnSuck" class="btn right">Get</button>
+			<div id="pnlFavo"><i id="debug"></i>
+			</div>
+		</div>
+	</div>
+</div>
+</body>
+</html>
